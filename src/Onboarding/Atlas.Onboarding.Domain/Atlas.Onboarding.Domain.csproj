@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Atlas.Onboarding.Domain</RootNamespace>
+  </PropertyGroup>
+  <!-- Deliberately no package or project references: the domain knows nothing about EF, HTTP or messaging. -->
+</Project>
