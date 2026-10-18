@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddAtlasLogging("onboarding");
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddAtlasOpenApi();
 builder.Services.AddAtlasAuthentication(builder.Environment);
 builder.Services.AddSingleton(TimeProvider.System);
 
@@ -36,7 +36,7 @@ app.UseSerilogRequestLogging();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapOpenApi().AllowAnonymous();
+app.MapAtlasOpenApi();
 app.MapAtlasHealthChecks();
 app.MapApplicationEndpoints();
 app.MapBranchEndpoints();
