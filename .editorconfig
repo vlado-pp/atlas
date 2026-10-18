@@ -1,0 +1,66 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+insert_final_newline = true
+charset = utf-8
+
+[*.{json,xml,csproj,props,yml,yaml}]
+indent_size = 2
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_qualification_for_field = false:warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# Analyzer tuning. Each suppression is deliberate:
+# CA1848: LoggerMessage source generators are worth it on hot paths only; message templates are still enforced (CA2254).
+dotnet_diagnostic.CA1848.severity = none
+# CA1873: same reasoning; log arguments here are cheap property reads.
+dotnet_diagnostic.CA1873.severity = none
+# CA2007: ASP.NET Core has no SynchronizationContext; ConfigureAwait(false) is noise in app code.
+dotnet_diagnostic.CA2007.severity = none
+# CA1515: executables expose public types to the test projects (WebApplicationFactory, unit tests).
+dotnet_diagnostic.CA1515.severity = none
+# CA1812: internal types are instantiated by DI / EF.
+dotnet_diagnostic.CA1812.severity = none
+# CA1062: nullable reference types already express argument nullability.
+dotnet_diagnostic.CA1062.severity = none
+# CA1031: background loops deliberately catch everything so one bad item cannot stop the worker; each site logs.
+dotnet_diagnostic.CA1031.severity = none
+# CA1000: Result<T>.Success/Failure factories are the idiomatic shape for a result type.
+dotnet_diagnostic.CA1000.severity = none
+# CA1716: domain names such as "Error" are intentional.
+dotnet_diagnostic.CA1716.severity = none
+# CA1711: "...Handler" style names are not delegates/event handlers in the CA sense.
+dotnet_diagnostic.CA1711.severity = none
+# CA1024: Get* methods doing work are intentionally methods.
+dotnet_diagnostic.CA1024.severity = none
+# CA1819: byte[] properties are used for EF row versions / payloads.
+dotnet_diagnostic.CA1819.severity = none
+# CA2227: EF navigation collections need setters in some configurations.
+dotnet_diagnostic.CA2227.severity = none
+# CA1054/CA1056: URIs are configuration strings here.
+dotnet_diagnostic.CA1054.severity = none
+dotnet_diagnostic.CA1056.severity = none
+
+[tests/**.cs]
+# Test method names use underscores: Method_Scenario_Expected
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA2000.severity = none
+
+[**/Migrations/*.cs]
+# EF-generated; regenerated rather than edited.
+generated_code = true
