@@ -14,4 +14,8 @@
   <Folder Name="/src/ProviderStubs/">
     <Project Path="src/ProviderStubs/Atlas.ProviderStubs/Atlas.ProviderStubs.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Atlas.IntegrationTests/Atlas.IntegrationTests.csproj" />
+    <Project Path="tests/Atlas.Onboarding.UnitTests/Atlas.Onboarding.UnitTests.csproj" />
+  </Folder>
 </Solution>
