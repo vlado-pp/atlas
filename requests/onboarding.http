@@ -1,0 +1,205 @@
+# Atlas — scenarios through the public API. Works with the VS Code REST Client extension and Visual Studio.
+# Start everything first: ./scripts/run.ps1 (or ./scripts/run.sh). See README "Driving the provider stand-ins".
+#
+# All personal data below is synthetic. Images are base64 text; the provider stub looks for markers inside them:
+#   c3ludGhldGljLXBhc3Nwb3J0                              "synthetic-passport"                (happy path)
+#   c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OklOVkFMSUQ=          "... idnow:INVALID"
+#   c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OkZBQ0VfTUlTTUFUQ0g=  "... idnow:FACE_MISMATCH"
+#   c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OklOQ09OQ0xVU0lWRQ==  "... idnow:INCONCLUSIVE"
+#   c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OkZMQUtZ              "... idnow:FLAKY"   (503 twice, then OK)
+#   c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OkRPV04=              "... idnow:DOWN"    (503 until you "recover" it, see stubs.http)
+# World-Check rules match the last name: PossibleMatch*, AutoClear*, Sanctioned*, Flaky*, Unreachable*.
+
+@onboarding = http://127.0.0.1:5100
+@customer = Bearer dev:customer:device-1
+@staff = Bearer dev:staff:teller-12
+@selfie = c3ludGhldGljLXNlbGZpZQ==
+
+### 1. Happy path (MB): 202 IN_PROGRESS, then APPROVED within seconds
+# @name happy
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Ana", "lastName": "Example", "dateOfBirth": "1991-03-04",
+  "country": "MB", "nationalId": "0403991450016",
+  "email": "ana@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 1b. Status of the application above (repeat until APPROVED)
+GET {{onboarding}}/applications/{{happy.response.body.$.applicationId}}
+Authorization: {{customer}}
+
+### 2. Possible sanctions match: UNDER_REVIEW until an officer resolves the case (stubs.http → resolve)
+# @name possibleMatch
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "PossibleMatch", "dateOfBirth": "1980-01-01",
+  "country": "MA", "nationalId": "0101980450016",
+  "email": "pm@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 2b. Status (UNDER_REVIEW, and stays so: nothing is decided automatically)
+GET {{onboarding}}/applications/{{possibleMatch.response.body.$.applicationId}}
+Authorization: {{customer}}
+
+### 3. Confirmed match, resolved by the stub's simulated officer after 20s: UNDER_REVIEW, then REJECTED / NOT_ELIGIBLE
+# @name sanctioned
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Sanctioned", "dateOfBirth": "1975-05-05",
+  "country": "ME", "nationalId": "1234567890",
+  "email": "s@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 3b. Status
+GET {{onboarding}}/applications/{{sanctioned.response.body.$.applicationId}}
+Authorization: {{customer}}
+
+### 4. MD: in-person activation required. AWAITING_BRANCH_VISIT, then staff activate, then APPROVED
+# @name branch
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Branch", "dateOfBirth": "1988-08-08",
+  "country": "MD", "nationalId": "1234567890",
+  "email": "b@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "ID_CARD", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 4b. Status (AWAITING_BRANCH_VISIT)
+GET {{onboarding}}/applications/{{branch.response.body.$.applicationId}}
+Authorization: {{customer}}
+
+### 4c. Branch staff check the person in front of them (audited read)
+GET {{onboarding}}/branch/applications/{{branch.response.body.$.applicationId}}/applicant
+Authorization: {{staff}}
+
+### 4d. Branch staff record the wet signature: account opening starts
+POST {{onboarding}}/branch/applications/{{branch.response.body.$.applicationId}}/activation
+Authorization: {{staff}}
+Content-Type: application/json
+
+{ "branchCode": "MD-001", "signedFormReference": "form-2026-0001" }
+
+### 5. MF resident without a Personal Number: passport number in lieu (nationality required)
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Resident", "dateOfBirth": "1995-02-02",
+  "country": "MF", "passportNumber": "AB1234567", "nationality": "SY",
+  "email": "r@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 6. IDNow down: stays IN_PROGRESS and retries with backoff (watch Seq); never rejected. Recover it in stubs.http.
+# @name outage
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Outage", "dateOfBirth": "1990-01-01",
+  "country": "MC", "nationalId": "12345678A",
+  "email": "o@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OkRPV04=" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 6b. Status
+GET {{onboarding}}/applications/{{outage.response.body.$.applicationId}}
+Authorization: {{customer}}
+
+### 7. Forged document: REJECTED / IDENTITY_NOT_VERIFIED
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Forged", "dateOfBirth": "1990-01-01",
+  "country": "MB", "nationalId": "0101990450016",
+  "email": "f@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0IGlkbm93OklOVkFMSUQ=" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 8. Validation: MD identifier in an MB application → 400 with errors.nationalId
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Invalid", "dateOfBirth": "1990-01-01",
+  "country": "MB", "nationalId": "1234567890",
+  "email": "i@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 9. Idempotency: send this twice. Same key, same answer, one application.
+POST {{onboarding}}/applications
+Authorization: {{customer}}
+Idempotency-Key: fixed-key-for-replay-demo
+Content-Type: application/json
+
+{
+  "firstName": "Test", "lastName": "Tunnel", "dateOfBirth": "1990-01-01",
+  "country": "MB", "nationalId": "0101990450016",
+  "email": "t@example.test", "phone": "+000 000 000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c3ludGhldGljLXBhc3Nwb3J0" },
+    { "type": "SELFIE", "image": "{{selfie}}" }
+  ],
+  "termsAccepted": true
+}

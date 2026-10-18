@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Accounts/">
+    <Project Path="src/Accounts/Atlas.Accounts.Api/Atlas.Accounts.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Atlas.BuildingBlocks/Atlas.BuildingBlocks.csproj" />
+    <Project Path="src/BuildingBlocks/Atlas.Contracts/Atlas.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Onboarding/">
+    <Project Path="src/Onboarding/Atlas.Onboarding.Api/Atlas.Onboarding.Api.csproj" />
+    <Project Path="src/Onboarding/Atlas.Onboarding.Domain/Atlas.Onboarding.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/ProviderStubs/">
+    <Project Path="src/ProviderStubs/Atlas.ProviderStubs/Atlas.ProviderStubs.csproj" />
+  </Folder>
+</Solution>

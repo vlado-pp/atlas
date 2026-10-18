@@ -1,0 +1,37 @@
+# Provider stand-ins (ADR-0012): steer IDNow and World-Check at runtime, without code changes or restarts.
+
+@stubs = http://127.0.0.1:5300
+
+### All rules: configured (src/ProviderStubs/Atlas.ProviderStubs/appsettings.json) and runtime
+GET {{stubs}}/_control/rules
+
+### World-Check cases (possible matches waiting for an officer)
+# @name cases
+GET {{stubs}}/_control/cases
+
+### Play the compliance officer: resolve the most recent case. outcome: CLEARED | CONFIRMED
+POST {{stubs}}/_control/cases/{{cases.response.body.$[0].caseId}}/resolve
+Content-Type: application/json
+
+{ "outcome": "CLEARED", "officerId": "officer-mb-7" }
+
+### "Recover" IDNow for documents marked idnow:DOWN (a runtime rule overrides the configured one)
+POST {{stubs}}/_control/rules/idnow
+Content-Type: application/json
+
+{ "id": "idnow-recovered", "match": "idnow:DOWN" }
+
+### Make World-Check slow for everyone (beyond the 10s attempt timeout): exercises timeouts and retries
+POST {{stubs}}/_control/rules/worldcheck
+Content-Type: application/json
+
+{ "id": "wc-slow", "match": " ", "latencyMs": 12000 }
+
+### Make IDNow return 429 twice for a marker, then answer normally
+POST {{stubs}}/_control/rules/idnow
+Content-Type: application/json
+
+{ "id": "idnow-throttled", "match": "idnow:THROTTLED", "failTimes": 2, "failStatusCode": 429 }
+
+### Remove all runtime rules and reset failure counters
+DELETE {{stubs}}/_control/rules
