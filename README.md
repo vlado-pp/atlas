@@ -126,6 +126,26 @@ The main gaps:
 - OpenTelemetry export.
 - The resumable upload API proposed to mobile.
 
+## How I worked
+
+I built Atlas with Claude Code as a pair. The split of work:
+
+1. **Requirements first.** I worked through `/requirements/` and wrote down the conflicts between the ticket,
+   Group Compliance, Annex B and the Teams thread, and which source wins when they disagree. That became the
+   `atlas-requirements-guardrails` skill.
+2. **Engineering standards as skills.** I wrote the rules I hold code to as Claude Code skills in
+   [.claude/skills/](.claude/skills/): clean code and layering, API design, persistence and data residency,
+   messaging and the workflow, provider integration, observability, and unit and integration testing. They are
+   committed so you can see what steered the implementation.
+3. **Decisions before code.** The ADRs in [docs/decisions/](docs/decisions/) were written before the implementation
+   (see the commit order), and each records the alternatives I rejected.
+4. **Implementation with the AI, review by me.** Claude Code wrote most of the code and tests under those skills
+   and ADRs. I reviewed the output against them, ran the scenarios in [requests/](requests/), and kept the test
+   suites green against the real infrastructure.
+
+The history is a set of tidy commits made at the end rather than the raw working history, so read it by
+layer, not as a timeline.
+
 ## Layout
 
 ```
